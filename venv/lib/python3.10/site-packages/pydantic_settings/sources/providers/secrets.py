@@ -38,9 +38,16 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
         env_parse_enums: bool | None = None,
     ) -> None:
         super().__init__(
-            settings_cls, case_sensitive, env_prefix, env_ignore_empty, env_parse_none_str, env_parse_enums
+            settings_cls,
+            case_sensitive,
+            env_prefix,
+            env_ignore_empty,
+            env_parse_none_str,
+            env_parse_enums,
         )
-        self.secrets_dir = secrets_dir if secrets_dir is not None else self.config.get('secrets_dir')
+        self.secrets_dir = (
+            secrets_dir if secrets_dir is not None else self.config.get("secrets_dir")
+        )
 
     def __call__(self) -> dict[str, Any]:
         """
@@ -51,7 +58,11 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
         if self.secrets_dir is None:
             return secrets
 
-        secrets_dirs = [self.secrets_dir] if isinstance(self.secrets_dir, (str, os.PathLike)) else self.secrets_dir
+        secrets_dirs = (
+            [self.secrets_dir]
+            if isinstance(self.secrets_dir, (str, os.PathLike))
+            else self.secrets_dir
+        )
         secrets_paths = [Path(p).expanduser() for p in secrets_dirs]
         self.secrets_paths = []
 
@@ -66,12 +77,16 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
 
         for path in self.secrets_paths:
             if not path.is_dir():
-                raise SettingsError(f'secrets_dir must reference a directory, not a {path_type_label(path)}')
+                raise SettingsError(
+                    f"secrets_dir must reference a directory, not a {path_type_label(path)}"
+                )
 
         return super().__call__()
 
     @classmethod
-    def find_case_path(cls, dir_path: Path, file_name: str, case_sensitive: bool) -> Path | None:
+    def find_case_path(
+        cls, dir_path: Path, file_name: str, case_sensitive: bool
+    ) -> Path | None:
         """
         Find a file within path's directory matching filename, optionally ignoring case.
 
@@ -90,7 +105,9 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
                 return f
         return None
 
-    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
+    def get_field_value(
+        self, field: FieldInfo, field_name: str
+    ) -> tuple[Any, str, bool]:
         """
         Gets the value for field from secret file and a flag to determine whether value is complex.
 
@@ -103,7 +120,9 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
                 a flag to determine whether value is complex.
         """
 
-        for field_key, env_name, value_is_complex in self._extract_field_info(field, field_name):
+        for field_key, env_name, value_is_complex in self._extract_field_info(
+            field, field_name
+        ):
             # paths reversed to match the last-wins behaviour of `env_file`
             for secrets_path in reversed(self.secrets_paths):
                 path = self.find_case_path(secrets_path, env_name, self.case_sensitive)
@@ -122,4 +141,4 @@ class SecretsSettingsSource(PydanticBaseEnvSettingsSource):
         return None, field_key, value_is_complex
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(secrets_dir={self.secrets_dir!r})'
+        return f"{self.__class__.__name__}(secrets_dir={self.secrets_dir!r})"

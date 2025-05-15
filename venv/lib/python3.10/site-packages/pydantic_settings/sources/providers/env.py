@@ -44,13 +44,22 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
         env_parse_enums: bool | None = None,
     ) -> None:
         super().__init__(
-            settings_cls, case_sensitive, env_prefix, env_ignore_empty, env_parse_none_str, env_parse_enums
+            settings_cls,
+            case_sensitive,
+            env_prefix,
+            env_ignore_empty,
+            env_parse_none_str,
+            env_parse_enums,
         )
         self.env_nested_delimiter = (
-            env_nested_delimiter if env_nested_delimiter is not None else self.config.get('env_nested_delimiter')
+            env_nested_delimiter
+            if env_nested_delimiter is not None
+            else self.config.get("env_nested_delimiter")
         )
         self.env_nested_max_split = (
-            env_nested_max_split if env_nested_max_split is not None else self.config.get('env_nested_max_split')
+            env_nested_max_split
+            if env_nested_max_split is not None
+            else self.config.get("env_nested_max_split")
         )
         self.maxsplit = (self.env_nested_max_split or 0) - 1
         self.env_prefix_len = len(self.env_prefix)
@@ -58,9 +67,16 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
         self.env_vars = self._load_env_vars()
 
     def _load_env_vars(self) -> Mapping[str, str | None]:
-        return parse_env_vars(os.environ, self.case_sensitive, self.env_ignore_empty, self.env_parse_none_str)
+        return parse_env_vars(
+            os.environ,
+            self.case_sensitive,
+            self.env_ignore_empty,
+            self.env_parse_none_str,
+        )
 
-    def get_field_value(self, field: FieldInfo, field_name: str) -> tuple[Any, str, bool]:
+    def get_field_value(
+        self, field: FieldInfo, field_name: str
+    ) -> tuple[Any, str, bool]:
         """
         Gets the value for field from environment variables and a flag to determine whether value is complex.
 
@@ -74,14 +90,18 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
         """
 
         env_val: str | None = None
-        for field_key, env_name, value_is_complex in self._extract_field_info(field, field_name):
+        for field_key, env_name, value_is_complex in self._extract_field_info(
+            field, field_name
+        ):
             env_val = self.env_vars.get(env_name)
             if env_val is not None:
                 break
 
         return env_val, field_key, value_is_complex
 
-    def prepare_field_value(self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool) -> Any:
+    def prepare_field_value(
+        self, field_name: str, field: FieldInfo, value: Any, value_is_complex: bool
+    ) -> Any:
         """
         Prepare value for the field.
 
@@ -120,7 +140,9 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
                         raise e
 
                 if isinstance(value, dict):
-                    return deep_update(value, self.explode_env_vars(field_name, field, self.env_vars))
+                    return deep_update(
+                        value, self.explode_env_vars(field_name, field, self.env_vars)
+                    )
                 else:
                     return value
         elif value is not None:
@@ -133,7 +155,9 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
         """
         if self.field_is_complex(field):
             allow_parse_failure = False
-        elif is_union_origin(get_origin(field.annotation)) and _union_is_complex(field.annotation, field.metadata):
+        elif is_union_origin(get_origin(field.annotation)) and _union_is_complex(
+            field.annotation, field.metadata
+        ):
             allow_parse_failure = True
         else:
             return False, False
@@ -144,7 +168,10 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
     # We have to change the method to a non-static method and use
     # `self.case_sensitive` instead in V3.
     def next_field(
-        self, field: FieldInfo | Any | None, key: str, case_sensitive: bool | None = None
+        self,
+        field: FieldInfo | Any | None,
+        key: str,
+        case_sensitive: bool | None = None,
     ) -> FieldInfo | None:
         """
         Find the field in a sub model by key(env name)
@@ -192,11 +219,16 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
                     if case_sensitive is None or case_sensitive:
                         if field_name == key or env_name == key:
                             return f
-                    elif field_name.lower() == key.lower() or env_name.lower() == key.lower():
+                    elif (
+                        field_name.lower() == key.lower()
+                        or env_name.lower() == key.lower()
+                    ):
                         return f
         return None
 
-    def explode_env_vars(self, field_name: str, field: FieldInfo, env_vars: Mapping[str, str | None]) -> dict[str, Any]:
+    def explode_env_vars(
+        self, field_name: str, field: FieldInfo, env_vars: Mapping[str, str | None]
+    ) -> dict[str, Any]:
         """
         Process env_vars and extract the values of keys containing env_nested_delimiter into nested dictionaries.
 
@@ -217,17 +249,22 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
         is_dict = ann is dict or _lenient_issubclass(get_origin(ann), dict)
 
         prefixes = [
-            f'{env_name}{self.env_nested_delimiter}' for _, env_name, _ in self._extract_field_info(field, field_name)
+            f"{env_name}{self.env_nested_delimiter}"
+            for _, env_name, _ in self._extract_field_info(field, field_name)
         ]
         result: dict[str, Any] = {}
         for env_name, env_val in env_vars.items():
             try:
-                prefix = next(prefix for prefix in prefixes if env_name.startswith(prefix))
+                prefix = next(
+                    prefix for prefix in prefixes if env_name.startswith(prefix)
+                )
             except StopIteration:
                 continue
             # we remove the prefix before splitting in case the prefix has characters in common with the delimiter
             env_name_without_prefix = env_name[len(prefix) :]
-            *keys, last_key = env_name_without_prefix.split(self.env_nested_delimiter, self.maxsplit)
+            *keys, last_key = env_name_without_prefix.split(
+                self.env_nested_delimiter, self.maxsplit
+            )
             env_var = result
             target_field: FieldInfo | None = field
             for key in keys:
@@ -241,9 +278,13 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
             # check if env_val maps to a complex field and if so, parse the env_val
             if (target_field or is_dict) and env_val:
                 if target_field:
-                    is_complex, allow_json_failure = self._field_is_complex(target_field)
+                    is_complex, allow_json_failure = self._field_is_complex(
+                        target_field
+                    )
                     if self.env_parse_enums:
-                        enum_val = _annotation_enum_name_to_val(target_field.annotation, env_val)
+                        enum_val = _annotation_enum_name_to_val(
+                            target_field.annotation, env_val
+                        )
                         env_val = env_val if enum_val is None else enum_val
                 else:
                     # nested field type is dict
@@ -255,16 +296,20 @@ class EnvSettingsSource(PydanticBaseEnvSettingsSource):
                         if not allow_json_failure:
                             raise e
             if isinstance(env_var, dict):
-                if last_key not in env_var or not isinstance(env_val, EnvNoneType) or env_var[last_key] == {}:
+                if (
+                    last_key not in env_var
+                    or not isinstance(env_val, EnvNoneType)
+                    or env_var[last_key] == {}
+                ):
                     env_var[last_key] = env_val
 
         return result
 
     def __repr__(self) -> str:
         return (
-            f'{self.__class__.__name__}(env_nested_delimiter={self.env_nested_delimiter!r}, '
-            f'env_prefix_len={self.env_prefix_len!r})'
+            f"{self.__class__.__name__}(env_nested_delimiter={self.env_nested_delimiter!r}, "
+            f"env_prefix_len={self.env_prefix_len!r})"
         )
 
 
-__all__ = ['EnvSettingsSource']
+__all__ = ["EnvSettingsSource"]
