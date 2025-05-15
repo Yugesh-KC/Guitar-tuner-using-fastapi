@@ -1,0 +1,467 @@
+<!-- HTML content will be provided at runtime --><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guitar Tuner</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            width: 90%;
+            max-width: 600px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            padding: 2rem;
+            text-align: center;
+        }
+        h1 {
+            color: #3a6ea5;
+            margin-bottom: 1.5rem;
+        }
+        .string-selector {
+            margin-bottom: 2rem;
+        }
+        .string-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+        .string-button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background-color: #3a6ea5;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .string-button:hover {
+            background-color: #4a7eb5;
+        }
+        .string-button.active {
+            background-color: #2a5e95;
+            transform: scale(1.05);
+        }
+        .tuner-display {
+            margin-bottom: 2rem;
+        }
+        .frequency-display {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-family: monospace;
+        }
+        .note-display {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .tuning-indicator {
+            width: 80%;
+            height: 40px;
+            margin: 0 auto;
+            background-color: #f0f0f0;
+            border-radius: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+        .indicator-needle {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 4px;
+            height: 40px;
+            background-color: black;
+            transform: translateX(-50%);
+            transition: left 0.5s ease-out; /* Smoother transition */
+        }
+        .target-mark {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 2px;
+            height: 40px;
+            background-color: #28a745;
+            transform: translateX(-50%);
+        }
+        .tolerance-zone {
+            position: absolute;
+            top: 0;
+            left: 25%; /* Wider tolerance zone (25% to 75%) */
+            width: 50%; /* 50% width instead of 30% */
+            height: 40px;
+            background-color: rgba(40, 167, 69, 0.2);
+            border-left: 1px dashed #28a745;
+            border-right: 1px dashed #28a745;
+        }
+        .status-text {
+            margin-top: 1rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        .controls {
+            margin-top: 2rem;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 5px;
+            background-color: #3a6ea5;
+            color: white;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        button:hover {
+            background-color: #4a7eb5;
+        }
+        button:disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .status-dot.connected {
+            background-color: #28a745;
+        }
+        .status-dot.disconnected {
+            background-color: #dc3545;
+        }
+        .connection-status {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        .sensitivity-control {
+            margin-top: 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .sensitivity-control label {
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+        .sensitivity-control input {
+            width: 80%;
+            margin-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Guitar Tuner</h1>
+        
+        <div class="string-selector">
+            <h2>Select String</h2>
+            <div class="string-buttons">
+                <button class="string-button" data-note="E" data-freq="82.41">E (Low E)</button>
+                <button class="string-button" data-note="A" data-freq="110.00">A</button>
+                <button class="string-button" data-note="D" data-freq="146.83">D</button>
+                <button class="string-button" data-note="G" data-freq="196.00">G</button>
+                <button class="string-button" data-note="B" data-freq="246.94">B</button>
+                <button class="string-button" data-note="E" data-freq="329.63">E (High E)</button>
+            </div>
+        </div>
+        
+        <div class="tuner-display">
+            <div class="frequency-display">0.00 Hz</div>
+            <div class="note-display">Select a string to tune</div>
+            <div class="tuning-indicator">
+                <div class="tolerance-zone"></div>
+                <div class="target-mark"></div>
+                <div class="indicator-needle"></div>
+            </div>
+            <div class="status-text">Ready</div>
+        </div>
+        
+        <div class="sensitivity-control">
+            <label for="sensitivity-slider">Sensitivity</label>
+            <input type="range" id="sensitivity-slider" min="1" max="100" value="50">
+            <span id="sensitivity-value">Medium</span>
+        </div>
+        
+        <div class="controls">
+            <button id="start-btn">Start Tuning</button>
+            <button id="stop-btn" disabled>Stop</button>
+        </div>
+        
+        <div class="connection-status">
+            <span class="status-dot disconnected"></span>
+            <span class="status-text">Server disconnected</span>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const frequencyDisplay = document.querySelector('.frequency-display');
+            const noteDisplay = document.querySelector('.note-display');
+            const statusText = document.querySelector('.status-text');
+            const indicatorNeedle = document.querySelector('.indicator-needle');
+            const stringButtons = document.querySelectorAll('.string-button');
+            const startButton = document.getElementById('start-btn');
+            const stopButton = document.getElementById('stop-btn');
+            const statusDot = document.querySelector('.status-dot');
+            const connectionStatusText = document.querySelector('.connection-status .status-text');
+            const sensitivitySlider = document.getElementById('sensitivity-slider');
+            const sensitivityValue = document.getElementById('sensitivity-value');
+            
+            let selectedString = null;
+            let targetFrequency = null;
+            let ws = null;
+            let audioContext = null;
+            let analyser = null;
+            let microphone = null;
+            let isRunning = false;
+            let sensitivityFactor = 0.5; // Default medium sensitivity
+            let movingAverageBuffer = []; // For smoothing readings
+            let bufferSize = 5; // Number of readings to average
+            
+            // Update sensitivity display text
+            function updateSensitivityText(value) {
+                if (value < 30) {
+                    sensitivityValue.textContent = "Low";
+                } else if (value < 70) {
+                    sensitivityValue.textContent = "Medium";
+                } else {
+                    sensitivityValue.textContent = "High";
+                }
+            }
+            
+            // Initialize sensitivity slider
+            sensitivitySlider.addEventListener('input', () => {
+                const value = parseInt(sensitivitySlider.value);
+                // Convert 1-100 scale to 0.1-1.0 scale (inverse: higher number = less sensitive)
+                sensitivityFactor = 1 - (value / 100) * 0.9;
+                updateSensitivityText(value);
+            });
+            updateSensitivityText(sensitivitySlider.value);
+            
+            // Initialize WebSocket connection
+            function connectWebSocket() {
+                // Connect to backend WebSocket server
+                ws = new WebSocket(`ws://${window.location.hostname}:8000/ws/tuner`);
+                
+                ws.onopen = () => {
+                    statusDot.classList.remove('disconnected');
+                    statusDot.classList.add('connected');
+                    connectionStatusText.textContent = 'Server connected';
+                };
+                
+                ws.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    
+                    if (data.frequency) {
+                        updateTunerDisplay(data.frequency);
+                    }
+                };
+                
+                ws.onclose = () => {
+                    statusDot.classList.remove('connected');
+                    statusDot.classList.add('disconnected');
+                    connectionStatusText.textContent = 'Server disconnected';
+                    
+                    // Try to reconnect after a delay
+                    setTimeout(connectWebSocket, 2000);
+                };
+                
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    statusDot.classList.remove('connected');
+                    statusDot.classList.add('disconnected');
+                    connectionStatusText.textContent = 'Connection error';
+                };
+            }
+            
+            // Select string button
+            stringButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    stringButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    
+                    selectedString = button.dataset.note;
+                    targetFrequency = parseFloat(button.dataset.freq);
+                    
+                    noteDisplay.textContent = `Target: ${selectedString} (${targetFrequency} Hz)`;
+                    statusText.textContent = 'Ready to tune';
+                    
+                    // Reset moving average buffer when changing strings
+                    movingAverageBuffer = [];
+                    
+                    // If already running, send the new target to the server
+                    if (isRunning && ws && ws.readyState === WebSocket.OPEN) {
+                        ws.send(JSON.stringify({
+                            action: 'set_string',
+                            string: selectedString,
+                            frequency: targetFrequency
+                        }));
+                    }
+                });
+            });
+            
+            // Start button click handler
+            startButton.addEventListener('click', async () => {
+                if (!selectedString) {
+                    statusText.textContent = 'Please select a string first';
+                    return;
+                }
+                
+                try {
+                    if (!audioContext) {
+                        // Initialize Web Audio API
+                        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                        analyser = audioContext.createAnalyser();
+                        analyser.fftSize = 2048;
+                        
+                        // Get microphone permission
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        microphone = audioContext.createMediaStreamSource(stream);
+                        microphone.connect(analyser);
+                        
+                        // Start processing audio
+                        isRunning = true;
+                        startButton.disabled = true;
+                        stopButton.disabled = false;
+                        statusText.textContent = 'Listening...';
+                        
+                        // Tell server we're starting and which string
+                        if (ws && ws.readyState === WebSocket.OPEN) {
+                            ws.send(JSON.stringify({
+                                action: 'start',
+                                string: selectedString,
+                                frequency: targetFrequency
+                            }));
+                        }
+                        
+                        // Start sending audio data
+                        processAudio();
+                    }
+                } catch (error) {
+                    console.error('Error accessing microphone:', error);
+                    statusText.textContent = 'Microphone access denied';
+                }
+            });
+            
+            // Stop button click handler
+            stopButton.addEventListener('click', () => {
+                isRunning = false;
+                startButton.disabled = false;
+                stopButton.disabled = true;
+                statusText.textContent = 'Stopped';
+                
+                // Tell server we're stopping
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({
+                        action: 'stop'
+                    }));
+                }
+                
+                // Reset moving average buffer
+                movingAverageBuffer = [];
+            });
+            
+            // Process audio data and send to server
+            function processAudio() {
+                if (!isRunning) return;
+                
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                analyser.getByteTimeDomainData(dataArray);
+                
+                // Send raw audio data to server for more accurate processing
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    // Convert to array for easier JSON serialization
+                    const audioData = Array.from(dataArray.slice(0, 2048)); // Send more data for better analysis
+                    
+                    ws.send(JSON.stringify({
+                        action: 'process_audio',
+                        data: audioData,
+                        sampleRate: audioContext.sampleRate
+                    }));
+                }
+                
+                // Request next frame
+                requestAnimationFrame(processAudio);
+            }
+            
+            // Add value to moving average buffer and return average
+            function addToMovingAverage(value) {
+                movingAverageBuffer.push(value);
+                
+                // Keep buffer at desired size
+                if (movingAverageBuffer.length > bufferSize) {
+                    movingAverageBuffer.shift();
+                }
+                
+                // Calculate average
+                const sum = movingAverageBuffer.reduce((a, b) => a + b, 0);
+                return sum / movingAverageBuffer.length;
+            }
+            
+            // Update tuner display based on detected frequency
+            function updateTunerDisplay(frequency) {
+                frequencyDisplay.textContent = `${frequency.toFixed(2)} Hz`;
+                
+                if (targetFrequency) {
+                    // Calculate how close we are to the target
+                    const ratio = frequency / targetFrequency;
+                    const cents = 1200 * Math.log2(ratio);
+                    
+                    // Apply moving average smoothing to cents deviation
+                    const smoothedCents = addToMovingAverage(cents);
+                    
+                    // Apply sensitivity factor to dampen needle movement
+                    const dampedCents = smoothedCents * sensitivityFactor;
+                    
+                    // Update needle position based on cents deviation
+                    // Scale visible range to show ±75 cents (much more lenient)
+                    const maxVisibleCents = 75;
+                    const position = Math.max(-maxVisibleCents, Math.min(maxVisibleCents, dampedCents));
+                    const needlePosition = 50 + position * (50/maxVisibleCents);  // Scale to fit display
+                    indicatorNeedle.style.left = `${needlePosition}%`;
+                    
+                    // Much more lenient thresholds for tuning status
+                    if (Math.abs(dampedCents) < 25) {  // Increased to 25 cents
+                        statusText.textContent = 'Perfect! 👍';
+                        statusText.style.color = '#28a745';
+                    } else if (Math.abs(dampedCents) < 50) {  // Increased to 50 cents
+                        statusText.textContent = 'Close!';
+                        statusText.style.color = '#ffc107';
+                    } else if (dampedCents > 0) {
+                        statusText.textContent = 'Too high ↑';
+                        statusText.style.color = '#dc3545';
+                    } else {
+                        statusText.textContent = 'Too low ↓';
+                        statusText.style.color = '#dc3545';
+                    }
+                    
+                    // Show smoothed cents deviation rather than raw
+                    noteDisplay.textContent = `Target: ${selectedString} (${targetFrequency} Hz)`;
+                }
+            }
+            
+            // Connect to WebSocket on page load
+            connectWebSocket();
+        });
+    </script>
+</body>
+</html>
