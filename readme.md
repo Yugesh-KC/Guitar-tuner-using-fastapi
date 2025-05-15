@@ -11,7 +11,7 @@ A simple real-time guitar tuner using FastAPI and WebSockets. It listens to your
 1.  **Clone and enter the repository:**
 
     ```bash
-    git clone [https://github.com/Yugesh-KC/Guitar-tuner-using-fastapi](https://github.com/Yugesh-KC/Guitar-tuner-using-fastapi)
+    git clone https://github.com/Yugesh-KC/Guitar-tuner-using-fastapi
     cd your-repo
     ```
 2.  **Set up a virtual environment and install dependencies:**
